@@ -1,0 +1,3 @@
+# Not needed on Vercel when deploying from the CLI
+design/
+.env*
