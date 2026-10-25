@@ -639,7 +639,11 @@ function StepContent({ step, draft, update, images, setImages, designs, options,
             <input type="checkbox" checked={draft.agreed} onChange={(e) => update({ agreed: e.target.checked })} className="mt-1 size-5 shrink-0 accent-heart" />
             <span className="text-sm leading-relaxed">
               I understand that my order is confirmed only after payment, that I&apos;ve measured my nails following the guide (or asked for a
-              sizing kit), and that custom sets can&apos;t be returned.
+              sizing kit), and that custom sets can&apos;t be returned. I&apos;ve read the{" "}
+              <Link href="/privacy" target="_blank" className="font-semibold text-heart underline underline-offset-4">
+                privacy policy
+              </Link>
+              .
             </span>
           </label>
         </>

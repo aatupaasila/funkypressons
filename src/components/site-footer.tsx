@@ -27,6 +27,11 @@ export function SiteFooter() {
               </Link>
             </li>
           ))}
+          <li>
+            <Link href="/privacy" className="inline-block py-1.5 text-sm hover:underline">
+              Privacy policy
+            </Link>
+          </li>
         </ul>
       </div>
     </footer>
