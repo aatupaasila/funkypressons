@@ -1,6 +1,9 @@
 "use server";
 
 import { randomBytes } from "node:crypto";
+import { after } from "next/server";
+import { setTypes } from "@/content/order-options";
+import { sendRequestEmails } from "@/lib/emails";
 import { client } from "@/sanity/client";
 import { getSettings } from "@/sanity/queries";
 import { describeSizes, validateOrder, type InspirationUpload, type OrderDraft } from "./order";
@@ -17,20 +20,30 @@ export async function submitCustomOrder(draft: OrderDraft, inspiration: Inspirat
 
   const reference = `FPO-${randomBytes(3).toString("hex").toUpperCase()}`;
   const colour = draft.baseColour === "design" ? "Design decides" : baseColours.find((c) => c.id === draft.baseColour)?.name;
+  const shape = draft.shape === "artist" ? "Artist's choice" : draft.shape;
+  const sizes = describeSizes(draft);
+  const name = draft.name.trim().slice(0, 120);
+  const email = draft.email.trim().slice(0, 200);
+  const deadline = /^\d{4}-\d{2}-\d{2}$/.test(draft.deadline) ? draft.deadline : undefined;
 
+  let documentId: string;
+  let designName: string | undefined;
   try {
-    const designId =
+    const design =
       draft.setType === "existing" && draft.existingDesign
-        ? await client.fetch<string | null>(`*[_type == "design" && slug.current == $slug][0]._id`, { slug: draft.existingDesign })
+        ? await client.fetch<{ _id: string; name: string } | null>(`*[_type == "design" && slug.current == $slug][0] { _id, name }`, {
+            slug: draft.existingDesign,
+          })
         : null;
+    designName = design?.name;
 
-    await client.create({
+    const created = await client.create({
       _type: "customRequest",
       status: "new",
       reference,
       submittedAt: new Date().toISOString(),
       setType: draft.setType,
-      existingDesign: designId ? { _type: "reference", _ref: designId, _weak: true } : undefined,
+      existingDesign: design ? { _type: "reference", _ref: design._id, _weak: true } : undefined,
       vision: draft.vision.trim() || undefined,
       inspiration: photos.map((p, i) => ({
         _key: `photo${i}`,
@@ -38,23 +51,39 @@ export async function submitCustomOrder(draft: OrderDraft, inspiration: Inspirat
         image: { _type: "image", asset: { _type: "reference", _ref: p.assetId } },
         credit: p.credit.trim().slice(0, 120) || undefined,
       })),
-      shape: draft.shape === "artist" ? "Artist's choice" : draft.shape,
+      shape,
       length: draft.length,
       baseColour: draft.setType === "existing" ? undefined : colour,
-      sizes: describeSizes(draft),
+      sizes,
       toes: draft.toes,
-      deadline: /^\d{4}-\d{2}-\d{2}$/.test(draft.deadline) ? draft.deadline : undefined,
-      name: draft.name.trim().slice(0, 120),
-      email: draft.email.trim().slice(0, 200),
+      deadline,
+      name,
+      email,
       instagram: draft.instagram.trim().slice(0, 60) || undefined,
       country: draft.country,
       referral: draft.referral.trim().slice(0, 120) || undefined,
     });
+    documentId = created._id;
   } catch (error) {
     console.error("Saving custom request failed", error);
     return { ok: false, problems: ["Something went wrong sending your request. Please try again in a moment."] };
   }
 
-  // TODO: email her and the customer via Resend
+  const rows: [string, string][] = [
+    ["Set", setTypes.find((t) => t.id === draft.setType)?.title ?? "—"],
+    ...(designName ? [["Design", designName] as [string, string]] : []),
+    ...(draft.vision.trim() ? [["Vision", draft.vision.trim()] as [string, string]] : []),
+    ["Shape", shape ?? "—"],
+    ["Length", draft.length ?? "—"],
+    ...(colour && draft.setType !== "existing" ? [["Base colour", colour] as [string, string]] : []),
+    ["Sizes", sizes],
+    ["Matching toes", draft.toes ? "Yes" : "No"],
+    ...(deadline ? [["Needed by", deadline] as [string, string]] : []),
+    ["Ship to", draft.country],
+  ];
+
+  // The request is saved; emails go out after the response so the customer isn't kept waiting
+  after(() => sendRequestEmails({ reference, documentId, name, email, rows, photoCount: photos.length }));
+
   return { ok: true, reference };
 }
