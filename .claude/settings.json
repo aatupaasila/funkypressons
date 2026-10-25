@@ -12,7 +12,11 @@
       "Bash(git check-ignore *)",
       "PowerShell(Get-Process node -ErrorAction SilentlyContinue)",
       "PowerShell(Get-CimInstance Win32_Process -Filter \"Name='node.exe'\" | Select-Object ProcessId, @{n='Cmd';e={$_.CommandLine.Substring\\(0, [Math]::Min\\(150, $_.CommandLine.Length\\)\\)}} | Format-List)",
-      "Bash(npx vercel@latest deploy --yes)"
+      "Bash(npx vercel@latest deploy --yes)",
+      "Bash(git checkout *)",
+      "Bash(git add *)",
+      "Bash(git commit -q -m 'Harden public endpoints and add security headers *)",
+      "Bash(git push *)"
     ]
   }
 }
