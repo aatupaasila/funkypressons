@@ -33,7 +33,7 @@ const designs: Seed[] = [
   { slug: "rose-matcha", name: "Rose Matcha", description: "Square tips in rose and sage with raised petals, ice-cube details, glitter and swirling linework.", shape: "square", length: "L", tags: ["flowers", "3D", "pink"], forSale: true, inStock: false },
   { slug: "swan-garden", name: "Swan Garden", description: "A hand-painted pond with swans, willows and water lilies.", shape: "almond", length: "L", tags: ["hand-painted", "green"] },
   { slug: "midnight-castle", name: "Midnight Castle", description: "Galaxy purples with a crescent moon, unicorn and a fairytale castle.", shape: "almond", length: "L", tags: ["purple", "hand-painted"] },
-  { slug: "cherry-duck", name: "Cherry Duck", description: "Baby blue lace, cherries with bows, little ducks and a red star.", shape: "almond", length: "M", tags: ["cute", "blue"] },
+  { slug: "cherry-teddy", name: "Cherry Teddy", description: "Cherry red and cream with 3D teddy bears, chrome bows, sliced apples and a lattice pie.", shape: "almond", length: "M", tags: ["3D", "red", "cute"] },
   { slug: "bubble-pop", name: "Bubble Pop", description: "Pink marble with rainbow dots and jelly gems.", shape: "almond", length: "M", tags: ["pink", "gems"] },
   { slug: "acorn-forest", name: "Acorn Forest", description: "Autumn browns with 3D mushrooms, acorns and a chipmunk.", shape: "almond", length: "L", tags: ["3D", "autumn"] },
   { slug: "pumpkin-kitty", name: "Pumpkin Kitty", description: "Halloween plaid with a black cat, pumpkins and a copper bow.", shape: "almond", length: "M", tags: ["3D", "halloween"] },
