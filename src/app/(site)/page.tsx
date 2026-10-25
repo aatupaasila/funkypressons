@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { gallery, products } from "@/content/catalog";
+import { getGallery, getProducts } from "@/sanity/queries";
 import { NailPhoto } from "@/components/nail-photo";
 import { ProductCard } from "@/components/product-card";
 import { Sparkle } from "@/components/sparkle";
@@ -11,7 +11,8 @@ const steps = [
   { title: "Wear your art", text: "Hand-painted, sized to your nails and shipped worldwide." },
 ];
 
-export default function Home() {
+export default async function Home() {
+  const [products, gallery] = await Promise.all([getProducts(), getGallery()]);
   return (
     <>
       <section className="relative overflow-hidden bg-bubblegum">

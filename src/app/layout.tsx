@@ -1,7 +1,5 @@
 import type { Metadata } from "next";
 import { Instrument_Sans, Instrument_Serif, Playfair_Display } from "next/font/google";
-import { SiteHeader } from "@/components/site-header";
-import { SiteFooter } from "@/components/site-footer";
 import { site } from "@/content/site";
 import "./globals.css";
 
@@ -41,11 +39,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       lang="en"
       className={`${instrumentSans.variable} ${instrumentSerif.variable} ${playfair.variable} h-full antialiased`}
     >
-      <body className="flex min-h-full flex-col font-sans">
-        <SiteHeader />
-        <main className="flex flex-1 flex-col">{children}</main>
-        <SiteFooter />
-      </body>
+      <body className="flex min-h-full flex-col font-sans">{children}</body>
     </html>
   );
 }

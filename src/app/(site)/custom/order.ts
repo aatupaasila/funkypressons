@@ -1,6 +1,6 @@
 import type { NailLength, NailShape } from "@/content/catalog";
-import { shippingCountries, type SetType } from "@/content/order-options";
-import { presetSizes, type PresetSize } from "@/content/sizing";
+import type { SetType } from "@/content/order-options";
+import { nearestTip, presetMillimetres, presetSizes, type PresetSize } from "@/content/sizing";
 
 // Shared by the form (client) and the submit action (server).
 
@@ -26,8 +26,8 @@ export type OrderDraft = {
   agreed: boolean;
 };
 
-/** What the customer said about each inspiration photo */
-export type InspirationMeta = { fileName: string; credit: string };
+/** An inspiration photo already uploaded to Sanity, plus the artist credit the customer gave */
+export type InspirationUpload = { assetId: string; credit: string };
 
 export const emptyDraft: OrderDraft = {
   setType: null,
@@ -70,7 +70,7 @@ export function sizesComplete(draft: OrderDraft) {
 }
 
 /** Returns a list of problems; empty means the order can be sent. */
-export function validateOrder(draft: OrderDraft, inspirationCount: number): string[] {
+export function validateOrder(draft: OrderDraft, inspirationCount: number, shippingCountries: string[]): string[] {
   const problems: string[] = [];
   if (!draft.setType) problems.push("Choose what kind of set you'd like.");
   if (draft.setType === "existing" && !draft.existingDesign) problems.push("Pick the design you'd like remade.");
@@ -86,4 +86,17 @@ export function validateOrder(draft: OrderDraft, inspirationCount: number): stri
   if (!isValidEmail(draft.email)) problems.push("Add a valid email address.");
   if (!draft.agreed) problems.push("Please accept the order terms.");
   return problems;
+}
+
+const toMm = (value: string) => Number(value.replace(",", "."));
+
+/** Human-readable sizes for the Studio, including her tip numbers */
+export function describeSizes(draft: OrderDraft): string {
+  if (draft.sizeMode === "kit") return "Sizing kit requested";
+  if (draft.sizeMode === "preset" && draft.presetSize) {
+    return `Standard ${draft.presetSize}: ${presetMillimetres(draft.presetSize).join("/")} mm (tips #${presetSizes[draft.presetSize].join("/")})`;
+  }
+  const hand = (label: string, sizes: Hand) =>
+    `${label}: ${sizes.map(toMm).join("/")} mm (tips #${sizes.map((s) => nearestTip(toMm(s))).join("/")})`;
+  return `${hand("Left", draft.sizes.left)}\n${hand("Right", draft.sizes.right)}`;
 }

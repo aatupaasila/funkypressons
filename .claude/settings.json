@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm install *)",
+      "Bash(npm ls *)",
+      "Bash(npx sanity@latest dataset visibility --help)",
+      "Bash(npx sanity@latest cors add --help)",
+      "Bash(npx sanity@latest tokens add --help)",
+      "Bash(npx sanity@latest tokens add \"Website \\(funkypressons.com\\)\" --role editor -p tkdcotec --json -y)",
+      "Bash(node -e ' *)",
+      "Bash(rm -f .sanity-token.tmp.json)",
+      "Bash(git check-ignore *)",
+      "PowerShell(Get-Process node -ErrorAction SilentlyContinue)",
+      "PowerShell(Get-CimInstance Win32_Process -Filter \"Name='node.exe'\" | Select-Object ProcessId, @{n='Cmd';e={$_.CommandLine.Substring\\(0, [Math]::Min\\(150, $_.CommandLine.Length\\)\\)}} | Format-List)"
+    ]
+  }
+}

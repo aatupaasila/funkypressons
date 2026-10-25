@@ -1,23 +1,45 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { formatPrice, getProduct, products } from "@/content/catalog";
+import { Suspense } from "react";
+import { formatPrice } from "@/content/catalog";
+import { getProduct, getProducts } from "@/sanity/queries";
 import { NailPhoto } from "@/components/nail-photo";
 import { button, tag } from "@/components/ui";
 
-export function generateStaticParams() {
-  return products.map((p) => ({ slug: p.slug }));
+export async function generateStaticParams() {
+  return (await getProducts()).map((p) => ({ slug: p.slug }));
 }
 
 export async function generateMetadata({ params }: PageProps<"/shop/[slug]">): Promise<Metadata> {
-  const { slug } = await params;
-  const product = getProduct(slug);
+  const product = await getProduct((await params).slug);
   return product ? { title: product.name, description: product.description } : {};
 }
 
-export default async function ProductPage({ params }: PageProps<"/shop/[slug]">) {
-  const { slug } = await params;
-  const product = getProduct(slug);
+// Products added in the Studio after a deploy aren't known at build time, so
+// the details stream in behind a fallback instead of blocking the page.
+export default function ProductPage({ params }: PageProps<"/shop/[slug]">) {
+  return (
+    <Suspense fallback={<ProductSkeleton />}>
+      <ProductDetails params={params} />
+    </Suspense>
+  );
+}
+
+function ProductSkeleton() {
+  return (
+    <div className="mx-auto grid w-full max-w-6xl gap-8 px-5 py-8 sm:px-6 md:grid-cols-2 md:gap-14 md:py-14" aria-busy="true">
+      <div className="aspect-square animate-pulse rounded-3xl bg-petal" />
+      <div className="flex flex-col gap-4 pt-10">
+        <div className="h-12 w-2/3 animate-pulse rounded-full bg-petal" />
+        <div className="h-6 w-1/4 animate-pulse rounded-full bg-petal" />
+      </div>
+    </div>
+  );
+}
+
+async function ProductDetails({ params }: Pick<PageProps<"/shop/[slug]">, "params">) {
+  const product = await getProduct((await params).slug);
   if (!product) notFound();
 
   return (

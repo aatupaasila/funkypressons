@@ -19,7 +19,7 @@ function MenuIcon({ open }: { open: boolean }) {
   );
 }
 
-export function SiteHeader() {
+export function SiteHeader({ announcement }: { announcement: string }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const [scrolledDown, setScrolledDown] = useState(false);
@@ -54,7 +54,13 @@ export function SiteHeader() {
         <div className={`grid transition-[grid-template-rows] duration-300 ${compact ? "grid-rows-[0fr]" : "grid-rows-[1fr]"}`}>
           <div className="overflow-hidden" inert={compact}>
             <div className="flex h-9 items-center justify-center bg-matcha px-4 text-[13px] font-medium">
-              Shipping worldwide <Sparkle size={10} className="mx-1.5" /> Custom sets open
+              {/* "✦" in the Studio text becomes the brand sparkle */}
+              {announcement.split("✦").map((part, i) => (
+                <span key={i} className="flex items-center">
+                  {i > 0 && <Sparkle size={10} className="mx-1.5" />}
+                  {part.trim()}
+                </span>
+              ))}
             </div>
           </div>
         </div>

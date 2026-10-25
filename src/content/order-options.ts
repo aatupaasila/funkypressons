@@ -1,6 +1,6 @@
 import type { NailLength, NailShape } from "./catalog";
 
-// Choices offered in the custom order form. These become editable in Sanity.
+// Fixed choices in the custom order form.
 
 export const setTypes = [
   {
@@ -43,9 +43,10 @@ export const lengths: { id: NailLength; name: string; hint: string; height: numb
   { id: "XL", name: "Extra long", hint: "Go big", height: 92 },
 ];
 
-// Placeholder base colours — replace with her actual gel shades.
-export const baseColours = [
-  { id: "clear", name: "Clear", hex: "#F4F1F2", note: "Sheer, glass-like" },
+// Fallbacks for when Site settings in the Studio is empty. The live lists are edited there.
+// Placeholder colours — replace with her actual gel shades.
+export const defaultBaseColours = [
+  { id: "clear", name: "Clear", hex: "#F4F1F2" },
   { id: "milky", name: "Milky white", hex: "#F7F2EC" },
   { id: "sheer-pink", name: "Sheer pink", hex: "#F6C9D4" },
   { id: "nude", name: "Nude", hex: "#E8C2AE" },
@@ -57,7 +58,7 @@ export const baseColours = [
 ];
 
 // Shipping to the rest of the EU is paused while the packaging rules settle.
-export const shippingCountries = [
+export const defaultShippingCountries = [
   "Finland",
   "United Kingdom",
   "United States",

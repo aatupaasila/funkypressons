@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useRef, useState, useSyncExternalStore, useTransition } from "react";
-import { baseColours, fingers, lengths, setTypes, shapes, shippingCountries } from "@/content/order-options";
+import { fingers, lengths, setTypes, shapes } from "@/content/order-options";
 import { site } from "@/content/site";
 import { nearestTip, presetMillimetres, presetSizes, type PresetSize } from "@/content/sizing";
 import { SizingGuide } from "@/components/sizing-guide";
@@ -12,9 +12,13 @@ import { button } from "@/components/ui";
 import { submitCustomOrder } from "./actions";
 import { Moodboard, type InspirationImage } from "./moodboard";
 import { emptyDraft, isValidEmail, isValidSize, sizesComplete, validateOrder, type Hand, type OrderDraft } from "./order";
+import { uploadInspirationPhoto } from "./upload-photo";
 
 type StepId = "type" | "inspiration" | "design" | "shape" | "length" | "colour" | "sizes" | "extras" | "contact" | "review";
 type Design = { slug: string; name: string; image: string };
+/** Lists she edits in Site settings */
+export type FormOptions = { shippingCountries: string[]; baseColours: { id: string; name: string; hex: string }[] };
+type FormProps = { designs: Design[]; options: FormOptions };
 
 const DRAFT_KEY = "fpo-custom-draft-v1";
 
@@ -42,22 +46,24 @@ function readSavedDraft(): { draft: OrderDraft; step: number } {
 const noopSubscribe = () => () => {};
 
 // The saved draft lives in localStorage, so the form itself only mounts in the browser
-export function CustomOrderForm({ designs }: { designs: Design[] }) {
+export function CustomOrderForm(props: FormProps) {
   const inBrowser = useSyncExternalStore(noopSubscribe, () => true, () => false);
   if (!inBrowser) return <div className="flex-1" aria-busy="true" />;
-  return <OrderForm designs={designs} />;
+  return <OrderForm {...props} />;
 }
 
-function OrderForm({ designs }: { designs: Design[] }) {
+function OrderForm({ designs, options }: FormProps) {
   const [saved] = useState(readSavedDraft);
   const [draft, setDraft] = useState<OrderDraft>(saved.draft);
   const [stepIndex, setStepIndex] = useState(saved.step);
   const [images, setImages] = useState<InspirationImage[]>([]);
   const [problems, setProblems] = useState<string[]>([]);
+  const [uploadStatus, setUploadStatus] = useState<string | null>(null);
   const [reference, setReference] = useState<string | null>(null);
   const [sending, startSending] = useTransition();
   const headingRef = useRef<HTMLHeadingElement>(null);
   const navigated = useRef(false);
+  const uploaded = useRef(new Map<string, string>());
 
   const steps = stepsFor(draft);
   const index = Math.min(stepIndex, steps.length - 1);
@@ -109,7 +115,7 @@ function OrderForm({ designs }: { designs: Design[] }) {
     colour: draft.baseColour !== null,
     sizes: sizesComplete(draft),
     extras: draft.toes !== null,
-    contact: shippingCountries.includes(draft.country) && draft.name.trim() !== "" && isValidEmail(draft.email),
+    contact: options.shippingCountries.includes(draft.country) && draft.name.trim() !== "" && isValidEmail(draft.email),
     review: draft.agreed,
   };
 
@@ -121,14 +127,27 @@ function OrderForm({ designs }: { designs: Design[] }) {
       setStepIndex(index + 1);
       return;
     }
-    const localProblems = validateOrder(draft, images.length);
+    const localProblems = validateOrder(draft, images.length, options.shippingCountries);
     if (localProblems.length) return setProblems(localProblems);
 
     startSending(async () => {
-      const result = await submitCustomOrder(
-        draft,
-        images.map((i) => ({ fileName: i.file.name, credit: i.credit })),
-      );
+      // Photos go up one by one first; the request then points at them
+      const uploads = [];
+      try {
+        for (const [i, image] of images.entries()) {
+          setUploadStatus(`Sending photo ${i + 1} of ${images.length}…`);
+          // Remember finished uploads so a retry doesn't send the same photo twice
+          const assetId = uploaded.current.get(image.id) ?? (await uploadInspirationPhoto(image.file));
+          uploaded.current.set(image.id, assetId);
+          uploads.push({ assetId, credit: image.credit });
+        }
+      } catch (error) {
+        setUploadStatus(null);
+        return setProblems([error instanceof Error ? error.message : "Uploading a photo failed. Please try again."]);
+      }
+      setUploadStatus("Sending your request…");
+      const result = await submitCustomOrder(draft, uploads);
+      setUploadStatus(null);
       if (!result.ok) return setProblems(result.problems);
       setProblems([]);
       setReference(result.reference);
@@ -192,6 +211,7 @@ function OrderForm({ designs }: { designs: Design[] }) {
           images={images}
           setImages={setImages}
           designs={designs}
+          options={options}
           headingRef={headingRef}
           goTo={goTo}
         />
@@ -212,7 +232,7 @@ function OrderForm({ designs }: { designs: Design[] }) {
             </button>
           )}
           <button type="submit" disabled={!canContinue[step] || sending} className={`${button.primary} flex-1`}>
-            {isLast ? (sending ? "Sending…" : "Send my request") : "Continue"}
+            {isLast ? (sending ? (uploadStatus ?? "Sending…") : "Send my request") : "Continue"}
           </button>
         </div>
       </div>
@@ -227,6 +247,7 @@ type StepProps = {
   images: InspirationImage[];
   setImages: (images: InspirationImage[]) => void;
   designs: Design[];
+  options: FormOptions;
   headingRef: React.RefObject<HTMLHeadingElement | null>;
   goTo: (id: StepId) => void;
 };
@@ -257,7 +278,8 @@ function Choice({ selected, onSelect, className = "", children }: { selected: bo
   );
 }
 
-function StepContent({ step, draft, update, images, setImages, designs, headingRef, goTo }: StepProps) {
+function StepContent({ step, draft, update, images, setImages, designs, options, headingRef, goTo }: StepProps) {
+  const { baseColours, shippingCountries } = options;
   switch (step) {
     case "type":
       return (

@@ -1,12 +1,13 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { products } from "@/content/catalog";
+import { getProducts } from "@/sanity/queries";
 import { PageIntro } from "@/components/page-intro";
 import { ProductCard } from "@/components/product-card";
 
 export const metadata: Metadata = { title: "Shop" };
 
-export default function ShopPage() {
+export default async function ShopPage() {
+  const products = await getProducts();
   return (
     <>
       <PageIntro eyebrow="Ready-made sets" title={<>The <em>shop</em></>}>

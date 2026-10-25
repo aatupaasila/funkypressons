@@ -1,12 +1,13 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { gallery } from "@/content/catalog";
+import { getGallery } from "@/sanity/queries";
 import { NailPhoto } from "@/components/nail-photo";
 import { PageIntro } from "@/components/page-intro";
 
 export const metadata: Metadata = { title: "Gallery" };
 
-export default function GalleryPage() {
+export default async function GalleryPage() {
+  const gallery = await getGallery();
   return (
     <>
       <PageIntro eyebrow="Every set I've made" title={<>The <em>gallery</em></>}>
