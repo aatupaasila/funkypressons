@@ -6,24 +6,33 @@ import { setTypes } from "@/content/order-options";
 import { sendRequestEmails } from "@/lib/emails";
 import { client } from "@/sanity/client";
 import { getSettings } from "@/sanity/queries";
-import { describeSizes, validateOrder, type InspirationUpload, type OrderDraft } from "./order";
+import { describeSizes, validateOrder } from "./order";
+import { parseDraft, parseInspiration } from "./parse";
 
 export type SubmitResult = { ok: true; reference: string } | { ok: false; problems: string[] };
 
-const ASSET_ID = /^image-[a-f0-9]+-\d+x\d+-[a-z0-9]+$/;
+const fakeReference = () => `FPO-${randomBytes(3).toString("hex").toUpperCase()}`;
 
-export async function submitCustomOrder(draft: OrderDraft, inspiration: InspirationUpload[]): Promise<SubmitResult> {
+// Arguments are typed `unknown` on purpose: this is callable by anyone, so
+// nothing is trusted until parseDraft/parseInspiration have rebuilt it.
+export async function submitCustomOrder(draftInput: unknown, inspirationInput: unknown, honeypot: unknown = ""): Promise<SubmitResult> {
+  // Bots fill the hidden field; pretend it worked so they don't adapt
+  if (typeof honeypot !== "string" || honeypot !== "") return { ok: true, reference: fakeReference() };
+
+  const draft = parseDraft(draftInput);
+  if (!draft) return { ok: false, problems: ["Something went wrong sending your request. Please try again."] };
+  const photos = parseInspiration(inspirationInput);
+
   const { shippingCountries, baseColours } = await getSettings();
-  const photos = inspiration.filter((p) => ASSET_ID.test(p.assetId)).slice(0, 10);
   const problems = validateOrder(draft, photos.length, shippingCountries);
   if (problems.length > 0) return { ok: false, problems };
 
-  const reference = `FPO-${randomBytes(3).toString("hex").toUpperCase()}`;
+  const reference = fakeReference();
   const colour = draft.baseColour === "design" ? "Design decides" : baseColours.find((c) => c.id === draft.baseColour)?.name;
   const shape = draft.shape === "artist" ? "Artist's choice" : draft.shape;
   const sizes = describeSizes(draft);
-  const name = draft.name.trim().slice(0, 120);
-  const email = draft.email.trim().slice(0, 200);
+  const name = draft.name.trim();
+  const email = draft.email.trim();
   const deadline = /^\d{4}-\d{2}-\d{2}$/.test(draft.deadline) ? draft.deadline : undefined;
 
   let documentId: string;
@@ -49,7 +58,7 @@ export async function submitCustomOrder(draft: OrderDraft, inspiration: Inspirat
         _key: `photo${i}`,
         _type: "inspirationPhoto",
         image: { _type: "image", asset: { _type: "reference", _ref: p.assetId } },
-        credit: p.credit.trim().slice(0, 120) || undefined,
+        credit: p.credit.trim() || undefined,
       })),
       shape,
       length: draft.length,
@@ -59,9 +68,9 @@ export async function submitCustomOrder(draft: OrderDraft, inspiration: Inspirat
       deadline,
       name,
       email,
-      instagram: draft.instagram.trim().slice(0, 60) || undefined,
+      instagram: draft.instagram.trim() || undefined,
       country: draft.country,
-      referral: draft.referral.trim().slice(0, 120) || undefined,
+      referral: draft.referral.trim() || undefined,
     });
     documentId = created._id;
   } catch (error) {

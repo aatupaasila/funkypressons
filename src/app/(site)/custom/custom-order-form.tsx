@@ -64,6 +64,7 @@ function OrderForm({ designs, options }: FormProps) {
   const headingRef = useRef<HTMLHeadingElement>(null);
   const navigated = useRef(false);
   const uploaded = useRef(new Map<string, string>());
+  const honeypotRef = useRef<HTMLInputElement>(null);
 
   const steps = stepsFor(draft);
   const index = Math.min(stepIndex, steps.length - 1);
@@ -146,7 +147,7 @@ function OrderForm({ designs, options }: FormProps) {
         return setProblems([error instanceof Error ? error.message : "Uploading a photo failed. Please try again."]);
       }
       setUploadStatus("Sending your request…");
-      const result = await submitCustomOrder(draft, uploads);
+      const result = await submitCustomOrder(draft, uploads, honeypotRef.current?.value ?? "");
       setUploadStatus(null);
       if (!result.ok) return setProblems(result.problems);
       setProblems([]);
@@ -184,6 +185,13 @@ function OrderForm({ designs, options }: FormProps) {
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-1 flex-col" noValidate>
+      {/* Spam trap: hidden from people and screen readers, filled in by bots */}
+      <div aria-hidden="true" className="absolute -left-[9999px] h-px w-px overflow-hidden">
+        <label>
+          Website
+          <input ref={honeypotRef} type="text" name="website" tabIndex={-1} autoComplete="off" defaultValue="" />
+        </label>
+      </div>
       <div className="mx-auto w-full max-w-2xl px-5 pt-6 sm:px-6">
         <div className="flex items-center justify-between text-sm font-semibold text-cocoa">
           <span className="tracking-[0.12em] uppercase">Your custom set</span>
