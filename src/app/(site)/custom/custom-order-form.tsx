@@ -354,7 +354,7 @@ function StepContent({ step, draft, update, images, setImages, designs, options,
             {designs.map((d) => (
               <Choice key={d.slug} selected={draft.existingDesign === d.slug} onSelect={() => update({ existingDesign: d.slug })} className="flex flex-col gap-2 p-2 pb-3 text-left">
                 <span className="relative block aspect-square overflow-hidden rounded-xl bg-white">
-                  <Image src={d.image} alt="" fill sizes="(min-width: 640px) 200px, 45vw" className="scale-[1.12] object-cover" />
+                  <Image src={d.image} alt="" fill sizes="(min-width: 640px) 200px, 45vw" className="object-contain p-[4%]" />
                 </span>
                 <span className="px-1 font-serif text-lg leading-tight">{d.name}</span>
               </Choice>
