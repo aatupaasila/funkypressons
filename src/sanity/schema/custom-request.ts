@@ -58,7 +58,8 @@ export const customRequest = defineType({
     defineField({ name: "length", title: "Length", type: "string", group: "order" }),
     defineField({ name: "baseColour", title: "Base colour", type: "string", group: "order" }),
     defineField({ name: "sizes", title: "Sizes", type: "text", rows: 3, group: "order" }),
-    defineField({ name: "toes", title: "Matching toes", type: "boolean", group: "order" }),
+    // No longer asked; kept so older requests still show the answer
+    defineField({ name: "toes", title: "Matching toes", type: "boolean", group: "order", readOnly: true, hidden: ({ value }) => value === undefined }),
     defineField({ name: "deadline", title: "Needed by", type: "date", group: "order" }),
 
     defineField({ name: "name", title: "Name", type: "string", group: "customer" }),

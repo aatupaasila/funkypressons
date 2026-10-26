@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useRef, useState, useSyncExternalStore, useTransition } from "react";
-import { fingers, lengths, setTypes, shapes } from "@/content/order-options";
+import { fingers, lengths, setTypes, type ShapeOption } from "@/content/order-options";
 import { site } from "@/content/site";
 import { nearestTip, presetMillimetres, presetSizes, type PresetSize } from "@/content/sizing";
 import { SizingGuide } from "@/components/sizing-guide";
@@ -14,13 +14,20 @@ import { Moodboard, type InspirationImage } from "./moodboard";
 import { emptyDraft, isValidEmail, isValidSize, sizesComplete, validateOrder, type Hand, type OrderDraft } from "./order";
 import { uploadInspirationPhoto } from "./upload-photo";
 
-type StepId = "type" | "inspiration" | "design" | "shape" | "length" | "colour" | "sizes" | "extras" | "contact" | "review";
+type StepId = "type" | "inspiration" | "design" | "shape" | "length" | "colour" | "sizes" | "deadline" | "contact" | "review";
 type Design = { slug: string; name: string; image: string };
 /** Lists she edits in Site settings */
-export type FormOptions = { shippingCountries: string[]; baseColours: { id: string; name: string; hex: string }[] };
+export type FormOptions = { shippingCountries: string[]; baseColours: { id: string; name: string; hex: string }[]; shapes: ShapeOption[] };
 type FormProps = { designs: Design[]; options: FormOptions };
 
 const DRAFT_KEY = "fpo-custom-draft-v1";
+
+// Shape boxes per row, by how many shapes are on offer (gap-3 is 0.75rem)
+const shapeWidth = {
+  1: "w-full sm:max-w-sm",
+  2: "basis-[calc((100%_-_0.75rem)/2)]",
+  3: "basis-[calc((100%_-_1.5rem)/3)]",
+} as const;
 
 const inputClass =
   "w-full rounded-full border-[1.5px] border-choc bg-white px-5 py-3 text-base placeholder:text-cocoa/70 focus:border-heart focus:outline-none";
@@ -29,7 +36,7 @@ function stepsFor(draft: OrderDraft): StepId[] {
   const steps: StepId[] = ["type", draft.setType === "existing" ? "design" : "inspiration", "shape", "length"];
   // A past design already has its colours
   if (draft.setType !== "existing") steps.push("colour");
-  steps.push("sizes", "extras", "contact", "review");
+  steps.push("sizes", "deadline", "contact", "review");
   return steps;
 }
 
@@ -111,11 +118,11 @@ function OrderForm({ designs, options }: FormProps) {
     type: draft.setType !== null,
     inspiration: draft.setType === "artists-choice" || draft.vision.trim() !== "" || images.length > 0,
     design: draft.existingDesign !== null,
-    shape: draft.shape !== null,
+    shape: draft.shape === "artist" || options.shapes.some((s) => s.id === draft.shape),
     length: draft.length !== null,
     colour: draft.baseColour !== null,
     sizes: sizesComplete(draft),
-    extras: draft.toes !== null,
+    deadline: true,
     contact: options.shippingCountries.includes(draft.country) && draft.name.trim() !== "" && isValidEmail(draft.email),
     review: draft.agreed,
   };
@@ -128,7 +135,7 @@ function OrderForm({ designs, options }: FormProps) {
       setStepIndex(index + 1);
       return;
     }
-    const localProblems = validateOrder(draft, images.length, options.shippingCountries);
+    const localProblems = validateOrder(draft, images.length, options);
     if (localProblems.length) return setProblems(localProblems);
 
     startSending(async () => {
@@ -287,7 +294,7 @@ function Choice({ selected, onSelect, className = "", children }: { selected: bo
 }
 
 function StepContent({ step, draft, update, images, setImages, designs, options, headingRef, goTo }: StepProps) {
-  const { baseColours, shippingCountries } = options;
+  const { baseColours, shippingCountries, shapes } = options;
   switch (step) {
     case "type":
       return (
@@ -356,28 +363,44 @@ function StepContent({ step, draft, update, images, setImages, designs, options,
         </>
       );
 
-    case "shape":
+    case "shape": {
+      // Fewer shapes get bigger boxes; four sit as 2×2, five leave a centred last row
+      const perRow = shapes.length === 4 ? 2 : (Math.min(shapes.length, 3) as 1 | 2 | 3);
+      const large = perRow < 3;
       return (
         <>
           <Question headingRef={headingRef} title={<>Pick your <em>shape</em></>} hint="Shape doesn't change the price — choose what feels most like you." />
-          <div className="grid grid-cols-3 gap-3">
-            {shapes.map((s) => {
-              const on = draft.shape === s.id;
-              return (
-                <Choice key={s.id} selected={on} onSelect={() => update({ shape: s.id })} className="flex min-h-33 flex-col items-center gap-2 px-2 pt-4 pb-3">
-                  <svg width="40" height="66" viewBox="0 0 60 100" aria-hidden="true">
-                    <path d={s.path} fill={on ? "#ffb3d9" : "#fff7fa"} stroke="#4a3333" strokeWidth="2.5" strokeLinejoin="round" />
-                  </svg>
-                  <span className="text-sm font-semibold">{s.name}</span>
-                </Choice>
-              );
-            })}
-          </div>
-          <Choice selected={draft.shape === "artist"} onSelect={() => update({ shape: "artist" })} className="mt-3 min-h-13 w-full border-dashed font-medium">
+          {shapes.length > 0 && (
+            <div className="flex flex-wrap justify-center gap-3">
+              {shapes.map((s) => {
+                const on = draft.shape === s.id;
+                return (
+                  <Choice
+                    key={s.id}
+                    selected={on}
+                    onSelect={() => update({ shape: s.id })}
+                    className={`flex flex-col items-center gap-2 ${shapeWidth[perRow]} ${large ? "min-h-48 px-4 pt-7 pb-5" : "min-h-33 px-2 pt-4 pb-3"}`}
+                  >
+                    <svg width={large ? 60 : 40} height={large ? 100 : 66} viewBox="0 0 60 100" aria-hidden="true">
+                      <path d={s.path} fill={on ? "#ffb3d9" : "#fff7fa"} stroke="#4a3333" strokeWidth="2.5" strokeLinejoin="round" />
+                    </svg>
+                    <span className={`font-semibold ${large ? "text-lg" : "text-sm"}`}>{s.name}</span>
+                    {s.note && <span className="text-xs leading-snug text-cocoa">{s.note}</span>}
+                  </Choice>
+                );
+              })}
+            </div>
+          )}
+          <Choice
+            selected={draft.shape === "artist"}
+            onSelect={() => update({ shape: "artist" })}
+            className={`min-h-13 w-full border-dashed font-medium ${shapes.length > 0 ? "mt-3" : ""}`}
+          >
             <Sparkle size={12} className="mr-1.5 inline -translate-y-px text-heart" /> Not sure — artist&apos;s choice
           </Choice>
         </>
       );
+    }
 
     case "length":
       return (
@@ -531,23 +554,16 @@ function StepContent({ step, draft, update, images, setImages, designs, options,
       );
     }
 
-    case "extras":
+    case "deadline":
       return (
         <>
-          <Question headingRef={headingRef} title={<>Finishing <em>touches</em></>} />
-          <fieldset>
-            <legend className="mb-3 font-semibold">Would you like a matching toe set?</legend>
-            <div className="grid grid-cols-2 gap-3">
-              <Choice selected={draft.toes === true} onSelect={() => update({ toes: true })} className="min-h-13 px-5 font-semibold">
-                Yes please
-              </Choice>
-              <Choice selected={draft.toes === false} onSelect={() => update({ toes: false })} className="min-h-13 px-5 font-semibold">
-                Just hands
-              </Choice>
-            </div>
-          </fieldset>
-          <label className="mt-8 flex flex-col gap-2 font-semibold">
-            Need them by a certain date? <span className="-mt-1 text-sm font-normal text-cocoa">Optional — I&apos;ll confirm if it&apos;s possible.</span>
+          <Question
+            headingRef={headingRef}
+            title={<>Need them by a certain <em>date?</em></>}
+            hint="Optional — leave it empty if there's no rush. I'll confirm if the date is possible."
+          />
+          <label className="flex flex-col gap-2 font-semibold">
+            Needed by
             <input type="date" value={draft.deadline} onChange={(e) => update({ deadline: e.target.value })} className={`${inputClass} font-normal`} />
           </label>
         </>
@@ -616,8 +632,7 @@ function StepContent({ step, draft, update, images, setImages, designs, options,
                 : `L ${draft.sizes.left.join("/")} · R ${draft.sizes.right.join("/")} mm`,
           step: "sizes",
         },
-        { label: "Toes", value: draft.toes ? "Yes" : "No", step: "extras" },
-        ...(draft.deadline ? [{ label: "Needed by", value: draft.deadline, step: "extras" as const }] : []),
+        ...(draft.deadline ? [{ label: "Needed by", value: draft.deadline, step: "deadline" as const }] : []),
         { label: "Ship to", value: draft.country, step: "contact" },
         { label: "Contact", value: `${draft.name} · ${draft.email}`, step: "contact" },
       ];

@@ -1,4 +1,5 @@
 import { defineField, defineType } from "sanity";
+import { shapes } from "../../content/order-options";
 
 // Single document: things she may want to change without touching code
 export const siteSettings = defineType({
@@ -43,6 +44,49 @@ export const siteSettings = defineType({
           preview: { select: { title: "name", subtitle: "hex" } },
         },
       ],
+    }),
+    defineField({
+      name: "shapes",
+      title: "Nail shapes",
+      description:
+        "Shapes offered in the custom order form, in this order. Turn off “Available” to hide one for now. If the list is empty, all six are shown.",
+      type: "array",
+      of: [
+        {
+          type: "object",
+          name: "shapeOption",
+          fields: [
+            defineField({
+              name: "shape",
+              title: "Shape",
+              type: "string",
+              options: { list: shapes.map((s) => ({ title: s.name, value: s.id })) },
+              validation: (r) => r.required(),
+            }),
+            defineField({ name: "name", title: "Name shown", description: "Leave empty to use the standard name.", type: "string" }),
+            defineField({
+              name: "note",
+              title: "Short note",
+              description: "Optional, e.g. “Best for short nails”.",
+              type: "string",
+              validation: (r) => r.max(60),
+            }),
+            defineField({ name: "available", title: "Available", type: "boolean", initialValue: true }),
+          ],
+          preview: {
+            select: { shape: "shape", name: "name", available: "available" },
+            prepare: ({ shape, name, available }) => ({
+              title: name || shapes.find((s) => s.id === shape)?.name || "Choose a shape",
+              subtitle: available === false ? "Hidden" : "Available",
+            }),
+          },
+        },
+      ],
+      validation: (r) =>
+        r.custom((items: { shape?: string }[] | undefined) => {
+          const ids = (items ?? []).map((i) => i.shape).filter(Boolean);
+          return new Set(ids).size === ids.length || "Each shape can only be listed once.";
+        }),
     }),
   ],
   preview: { prepare: () => ({ title: "Site settings" }) },

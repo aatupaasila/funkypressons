@@ -33,7 +33,6 @@ export function parseDraft(input: unknown): OrderDraft | null {
     sizeMode: oneOf(d.sizeMode, ["preset", "measured", "kit"] as const),
     presetSize: oneOf(d.presetSize, Object.keys(presetSizes) as PresetSize[]),
     sizes: { left: hand(sizes.left), right: hand(sizes.right) },
-    toes: typeof d.toes === "boolean" ? d.toes : null,
     deadline: text(d.deadline, 10),
     country: text(d.country, 80),
     name: text(d.name, 120),

@@ -8,7 +8,7 @@ export const metadata: Metadata = {
 };
 
 export default async function CustomPage() {
-  const [gallery, { shippingCountries, baseColours }] = await Promise.all([getGallery(), getSettings()]);
+  const [gallery, { shippingCountries, baseColours, shapes }] = await Promise.all([getGallery(), getSettings()]);
   const designs = gallery.map(({ slug, name, image }) => ({ slug, name, image }));
-  return <CustomOrderForm designs={designs} options={{ shippingCountries, baseColours }} />;
+  return <CustomOrderForm designs={designs} options={{ shippingCountries, baseColours, shapes }} />;
 }

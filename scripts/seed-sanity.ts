@@ -57,6 +57,12 @@ const settings = {
     ["Lilac", "#CDB8E6"],
     ["Black", "#2A2224"],
   ].map(([name, hex], i) => ({ _key: `colour${i}`, _type: "baseColour", name, hex })),
+  shapes: ["almond", "stiletto", "coffin", "square", "oval", "round"].map((shape, i) => ({
+    _key: `shape${i}`,
+    _type: "shapeOption",
+    shape,
+    available: true,
+  })),
 };
 
 // Oldest first, so the first entries end up newest in "newest first" lists

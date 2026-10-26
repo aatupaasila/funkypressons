@@ -16,7 +16,6 @@ export type OrderDraft = {
   sizeMode: "preset" | "measured" | "kit" | null;
   presetSize: PresetSize | null;
   sizes: { left: Hand; right: Hand };
-  toes: boolean | null;
   deadline: string;
   country: string;
   name: string;
@@ -39,7 +38,6 @@ export const emptyDraft: OrderDraft = {
   sizeMode: null,
   presetSize: null,
   sizes: { left: ["", "", "", "", ""], right: ["", "", "", "", ""] },
-  toes: null,
   deadline: "",
   country: "",
   name: "",
@@ -70,17 +68,23 @@ export function sizesComplete(draft: OrderDraft) {
 }
 
 /** Returns a list of problems; empty means the order can be sent. */
-export function validateOrder(draft: OrderDraft, inspirationCount: number, shippingCountries: string[]): string[] {
+export function validateOrder(
+  draft: OrderDraft,
+  inspirationCount: number,
+  { shippingCountries, shapes }: { shippingCountries: string[]; shapes: { id: string }[] },
+): string[] {
   const problems: string[] = [];
   if (!draft.setType) problems.push("Choose what kind of set you'd like.");
   if (draft.setType === "existing" && !draft.existingDesign) problems.push("Pick the design you'd like remade.");
   if ((draft.setType === "own-idea" || draft.setType === "inspired") && !draft.vision.trim() && inspirationCount === 0)
     problems.push("Tell me about your idea or add some inspiration photos.");
   if (!draft.shape) problems.push("Choose a shape.");
+  // A saved draft or an old tab may still hold a shape she has since hidden
+  else if (draft.shape !== "artist" && !shapes.some((s) => s.id === draft.shape))
+    problems.push("That shape isn't available right now. Please choose another.");
   if (!draft.length) problems.push("Choose a length.");
   if (draft.setType !== "existing" && !draft.baseColour) problems.push("Choose a base colour.");
   if (!sizesComplete(draft)) problems.push("Choose a size, add your measurements or ask for a sizing kit.");
-  if (draft.toes === null) problems.push("Let me know if you'd like matching toes.");
   if (!shippingCountries.includes(draft.country)) problems.push("Choose where to ship.");
   if (!draft.name.trim()) problems.push("Add your name.");
   if (!isValidEmail(draft.email)) problems.push("Add a valid email address.");

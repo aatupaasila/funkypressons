@@ -23,13 +23,13 @@ export async function submitCustomOrder(draftInput: unknown, inspirationInput: u
   if (!draft) return { ok: false, problems: ["Something went wrong sending your request. Please try again."] };
   const photos = parseInspiration(inspirationInput);
 
-  const { shippingCountries, baseColours } = await getSettings();
-  const problems = validateOrder(draft, photos.length, shippingCountries);
+  const { shippingCountries, baseColours, shapes } = await getSettings();
+  const problems = validateOrder(draft, photos.length, { shippingCountries, shapes });
   if (problems.length > 0) return { ok: false, problems };
 
   const reference = fakeReference();
   const colour = draft.baseColour === "design" ? "Design decides" : baseColours.find((c) => c.id === draft.baseColour)?.name;
-  const shape = draft.shape === "artist" ? "Artist's choice" : draft.shape;
+  const shape = draft.shape === "artist" ? "Artist's choice" : shapes.find((s) => s.id === draft.shape)?.name;
   const sizes = describeSizes(draft);
   const name = draft.name.trim();
   const email = draft.email.trim();
@@ -64,7 +64,6 @@ export async function submitCustomOrder(draftInput: unknown, inspirationInput: u
       length: draft.length,
       baseColour: draft.setType === "existing" ? undefined : colour,
       sizes,
-      toes: draft.toes,
       deadline,
       name,
       email,
@@ -86,7 +85,6 @@ export async function submitCustomOrder(draftInput: unknown, inspirationInput: u
     ["Length", draft.length ?? "—"],
     ...(colour && draft.setType !== "existing" ? [["Base colour", colour] as [string, string]] : []),
     ["Sizes", sizes],
-    ["Matching toes", draft.toes ? "Yes" : "No"],
     ...(deadline ? [["Needed by", deadline] as [string, string]] : []),
     ["Ship to", draft.country],
   ];

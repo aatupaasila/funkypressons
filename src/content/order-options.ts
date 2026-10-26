@@ -36,6 +36,11 @@ export const shapes: { id: NailShape; name: string; path: string }[] = [
   { id: "round", name: "Round", path: "M10 100 L10 38 Q10 14 30 14 Q50 14 50 38 L50 100 Z" },
 ];
 
+/** A shape as offered in the form; which ones, their order and names come from Site settings */
+export type ShapeOption = { id: NailShape; name: string; note: string; path: string };
+
+export const defaultShapes: ShapeOption[] = shapes.map((s) => ({ ...s, note: "" }));
+
 export const lengths: { id: NailLength; name: string; hint: string; height: number }[] = [
   { id: "S", name: "Short", hint: "Just past the fingertip", height: 44 },
   { id: "M", name: "Medium", hint: "Everyday length", height: 58 },

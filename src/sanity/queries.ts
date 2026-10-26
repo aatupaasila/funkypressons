@@ -1,7 +1,7 @@
 import "server-only";
 import { defineQuery } from "next-sanity";
 import type { NailLength, NailSet, NailShape, Product } from "@/content/catalog";
-import { defaultBaseColours, defaultShippingCountries } from "@/content/order-options";
+import { defaultBaseColours, defaultShapes, defaultShippingCountries, type ShapeOption } from "@/content/order-options";
 import { sanityFetch } from "./client";
 import { squareImageUrl } from "./image";
 
@@ -40,7 +40,16 @@ const productsQuery = defineQuery(
   `*[_type == "design" && forSale == true && defined(slug.current)] | order(_createdAt desc) { ${designFields} }`,
 );
 const productQuery = defineQuery(`*[_type == "design" && forSale == true && slug.current == $slug][0] { ${designFields} }`);
-const settingsQuery = defineQuery(`*[_id == "siteSettings"][0] { announcement, shippingCountries, baseColours[] { name, hex } }`);
+const settingsQuery = defineQuery(
+  `*[_id == "siteSettings"][0] { announcement, shippingCountries, baseColours[] { name, hex }, shapes[] { shape, name, note, available } }`,
+);
+
+type SettingsRow = {
+  announcement: string;
+  shippingCountries: string[];
+  baseColours: { name: string; hex: string }[];
+  shapes: { shape: string | null; name: string | null; note: string | null; available: boolean | null }[];
+};
 
 function toNailSet(row: DesignRow): NailSet {
   return {
@@ -76,6 +85,8 @@ export type SiteSettings = {
   announcement: string;
   shippingCountries: string[];
   baseColours: { id: string; name: string; hex: string }[];
+  /** Only the shapes currently available, in her order */
+  shapes: ShapeOption[];
 };
 
 // Used until the settings document has been filled in
@@ -83,17 +94,26 @@ const defaultSettings: SiteSettings = {
   announcement: "Shipping worldwide ✦ Custom sets open",
   shippingCountries: defaultShippingCountries,
   baseColours: defaultBaseColours,
+  shapes: defaultShapes,
 };
 
+function toShapes(rows: SettingsRow["shapes"]): ShapeOption[] {
+  return rows.flatMap((row) => {
+    const standard = defaultShapes.find((s) => s.id === row.shape);
+    if (!standard || row.available === false) return [];
+    return [{ ...standard, name: row.name?.trim() || standard.name, note: row.note?.trim() ?? "" }];
+  });
+}
+
 export async function getSettings(): Promise<SiteSettings> {
-  const row = await sanityFetch<Partial<{ announcement: string; shippingCountries: string[]; baseColours: { name: string; hex: string }[] }> | null>(
-    settingsQuery,
-  );
+  const row = await sanityFetch<Partial<SettingsRow> | null>(settingsQuery);
   return {
     announcement: row?.announcement || defaultSettings.announcement,
     shippingCountries: row?.shippingCountries?.length ? row.shippingCountries : defaultSettings.shippingCountries,
     baseColours: row?.baseColours?.length
       ? row.baseColours.map((c) => ({ id: c.name.toLowerCase().replace(/\s+/g, "-"), name: c.name, hex: c.hex }))
       : defaultSettings.baseColours,
+    // An empty list means all shapes; a list with every shape hidden means none
+    shapes: row?.shapes?.length ? toShapes(row.shapes) : defaultSettings.shapes,
   };
 }
