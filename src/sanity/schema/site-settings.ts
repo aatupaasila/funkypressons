@@ -88,6 +88,44 @@ export const siteSettings = defineType({
           return new Set(ids).size === ids.length || "Each shape can only be listed once.";
         }),
     }),
+    defineField({
+      name: "hero",
+      title: "Front page picture",
+      description: "The big picture at the top of the front page.",
+      type: "object",
+      fields: [
+        defineField({
+          name: "mode",
+          title: "Show",
+          type: "string",
+          options: {
+            list: [
+              { title: "Slideshow of sets", value: "slideshow" },
+              { title: "One picture (e.g. the logo)", value: "image" },
+            ],
+            layout: "radio",
+          },
+          initialValue: "slideshow",
+        }),
+        defineField({
+          name: "sets",
+          title: "Sets in the slideshow",
+          description: "Their main photos fade from one to the next, in this order. Leave empty to show the six newest sets.",
+          type: "array",
+          of: [{ type: "reference", to: [{ type: "design" }] }],
+          hidden: ({ parent }) => parent?.mode === "image",
+          validation: (r) => r.unique(),
+        }),
+        defineField({
+          name: "image",
+          title: "Picture",
+          type: "image",
+          options: { hotspot: true },
+          hidden: ({ parent }) => parent?.mode !== "image",
+          fields: [defineField({ name: "alt", title: "Description", description: "What the picture shows, for screen readers.", type: "string" })],
+        }),
+      ],
+    }),
   ],
   preview: { prepare: () => ({ title: "Site settings" }) },
 });

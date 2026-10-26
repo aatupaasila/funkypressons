@@ -3,7 +3,7 @@ import { defineQuery } from "next-sanity";
 import type { NailLength, NailSet, NailShape, Product } from "@/content/catalog";
 import { defaultBaseColours, defaultShapes, defaultShippingCountries, type ShapeOption } from "@/content/order-options";
 import { sanityFetch } from "./client";
-import { squareImageUrl } from "./image";
+import { imageUrl, squareImageUrl } from "./image";
 
 type DesignRow = {
   slug: string;
@@ -41,14 +41,22 @@ const productsQuery = defineQuery(
 );
 const productQuery = defineQuery(`*[_type == "design" && forSale == true && slug.current == $slug][0] { ${designFields} }`);
 const settingsQuery = defineQuery(
-  `*[_id == "siteSettings"][0] { announcement, shippingCountries, baseColours[] { name, hex }, shapes[] { shape, name, note, available } }`,
+  `*[_id == "siteSettings"][0] { announcement, shippingCountries, baseColours[] { name, hex }, shapes[] { shape, name, note, available },
+    hero { mode, "sets": sets[]->{ name, "image": images[0] }[defined(image.asset)], image } }`,
 );
+
+type SanityImage = { asset?: { _ref: string } };
 
 type SettingsRow = {
   announcement: string;
   shippingCountries: string[];
   baseColours: { name: string; hex: string }[];
   shapes: { shape: string | null; name: string | null; note: string | null; available: boolean | null }[];
+  hero: {
+    mode: "slideshow" | "image" | null;
+    sets: { name: string; image: SanityImage }[] | null;
+    image: (SanityImage & { alt?: string }) | null;
+  };
 };
 
 function toNailSet(row: DesignRow): NailSet {
@@ -87,6 +95,8 @@ export type SiteSettings = {
   baseColours: { id: string; name: string; hex: string }[];
   /** Only the shapes currently available, in her order */
   shapes: ShapeOption[];
+  /** The front page picture. No slides means she hasn't picked any: the page uses the newest sets */
+  hero: { mode: "slideshow" | "image"; slides: { src: string; alt: string }[] };
 };
 
 // Used until the settings document has been filled in
@@ -95,7 +105,16 @@ const defaultSettings: SiteSettings = {
   shippingCountries: defaultShippingCountries,
   baseColours: defaultBaseColours,
   shapes: defaultShapes,
+  hero: { mode: "slideshow", slides: [] },
 };
+
+function toHero(row: SettingsRow["hero"] | undefined): SiteSettings["hero"] {
+  if (row?.mode === "image") {
+    const image = row.image?.asset ? row.image : null;
+    return { mode: "image", slides: image ? [{ src: imageUrl(image), alt: image.alt ?? "" }] : [] };
+  }
+  return { mode: "slideshow", slides: (row?.sets ?? []).map((set) => ({ src: squareImageUrl(set.image), alt: set.name })) };
+}
 
 function toShapes(rows: SettingsRow["shapes"]): ShapeOption[] {
   return rows.flatMap((row) => {
@@ -115,5 +134,6 @@ export async function getSettings(): Promise<SiteSettings> {
       : defaultSettings.baseColours,
     // An empty list means all shapes; a list with every shape hidden means none
     shapes: row?.shapes?.length ? toShapes(row.shapes) : defaultSettings.shapes,
+    hero: toHero(row?.hero),
   };
 }
