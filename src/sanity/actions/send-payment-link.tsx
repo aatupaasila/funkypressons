@@ -20,8 +20,11 @@ export const SendPaymentLinkAction: DocumentActionComponent = (props) => {
 
   const quote = doc?.quote;
   const alreadySent = Boolean(doc?.payment?.linkUrl);
+  // Set to "true" wherever the site has Stripe keys; otherwise the button would silently do nothing
   const disabledReason =
-    doc?.status === "paid"
+    process.env.NEXT_PUBLIC_PAYMENTS_ENABLED !== "true"
+      ? "Payments aren't switched on yet."
+      : doc?.status === "paid"
       ? "This request is already paid."
       : !quote || quote < 1
         ? "Add the quoted price first."
