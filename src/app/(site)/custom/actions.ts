@@ -34,6 +34,7 @@ export async function submitCustomOrder(draftInput: unknown, inspirationInput: u
   const name = draft.name.trim();
   const email = draft.email.trim();
   const deadline = /^\d{4}-\d{2}-\d{2}$/.test(draft.deadline) ? draft.deadline : undefined;
+  const country = shippingCountries.find((c) => c.code === draft.country)!;
 
   let documentId: string;
   let designName: string | undefined;
@@ -68,7 +69,8 @@ export async function submitCustomOrder(draftInput: unknown, inspirationInput: u
       name,
       email,
       instagram: draft.instagram.trim() || undefined,
-      country: draft.country,
+      country: country.name,
+      countryCode: country.code,
       referral: draft.referral.trim() || undefined,
     });
     documentId = created._id;
@@ -86,7 +88,7 @@ export async function submitCustomOrder(draftInput: unknown, inspirationInput: u
     ...(colour && draft.setType !== "existing" ? [["Base colour", colour] as [string, string]] : []),
     ["Sizes", sizes],
     ...(deadline ? [["Needed by", deadline] as [string, string]] : []),
-    ["Ship to", draft.country],
+    ["Ship to", country.name],
   ];
 
   // The request is saved; emails go out after the response so the customer isn't kept waiting

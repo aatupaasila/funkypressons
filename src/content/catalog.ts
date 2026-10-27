@@ -20,6 +20,10 @@ export type Product = NailSet & {
   price: number | null;
   inStock: boolean;
   isNew?: boolean;
+  /** made-to-order: made in the buyer's size; ready-made: one finished set, sold once */
+  fulfilment: "made-to-order" | "ready-made";
+  /** Ready-made sets only: the size it was made in, as she wrote it */
+  readySize?: string;
 };
 
 export function formatPrice(price: number | null) {

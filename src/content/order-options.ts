@@ -62,13 +62,44 @@ export const defaultBaseColours = [
   { id: "black", name: "Black", hex: "#2A2224" },
 ];
 
-// Shipping to the rest of the EU is paused while the packaging rules settle.
-export const defaultShippingCountries = [
-  "Finland",
-  "United Kingdom",
-  "United States",
-  "Saudi Arabia",
-  "Other (outside the EU)",
+/** A group of countries with one shipping price. Edited in Site settings → Shipping. */
+export type ShippingZone = { name: string; countries: string[]; price: number; delivery: string };
+
+// Fallback zones, also used to fill Site settings the first time. Prices are
+// PLACEHOLDERS until she sets her real ones in the Studio.
+// Left out on purpose: sanctioned countries (RU, BY, IR, KP, CU, SY) and places
+// orders are unlikely to come from. EU orders are accepted; if packaging rules
+// block a shipment she contacts the customer and refunds.
+export const defaultShippingZones: ShippingZone[] = [
+  { name: "Finland", countries: ["FI"], price: 6, delivery: "2–5 working days" },
+  {
+    name: "Rest of the EU",
+    countries: ["SE", "DK", "EE", "LV", "LT", "DE", "PL", "NL", "BE", "LU", "FR", "IE", "AT", "CZ", "SK", "HU", "SI", "HR", "IT", "ES", "PT", "MT", "CY", "GR", "BG", "RO"],
+    price: 10,
+    delivery: "1–2 weeks",
+  },
+  {
+    name: "Europe outside the EU",
+    countries: ["GB", "NO", "IS", "CH", "LI", "AD", "MC", "SM", "GI", "JE", "GG", "IM", "FO", "AL", "BA", "ME", "MK", "RS", "XK", "MD", "UA", "GE", "AM", "TR"],
+    price: 12,
+    delivery: "1–2 weeks",
+  },
+  { name: "USA & Canada", countries: ["US", "CA", "PR"], price: 15, delivery: "1–3 weeks" },
+  {
+    name: "Rest of the world",
+    countries: [
+      // Middle East
+      "SA", "AE", "QA", "KW", "BH", "OM", "JO", "IL", "LB", "EG",
+      // Asia & Pacific
+      "AU", "NZ", "JP", "KR", "SG", "HK", "TW", "MO", "MY", "TH", "PH", "ID", "VN", "IN", "LK",
+      // Latin America & Caribbean
+      "MX", "BR", "AR", "CL", "CO", "PE", "UY", "CR", "PA", "DO", "JM", "TT",
+      // Africa
+      "ZA", "MA", "KE", "NG", "GH", "MU",
+    ],
+    price: 18,
+    delivery: "2–4 weeks",
+  },
 ];
 
 export const fingers = ["Thumb", "Index", "Middle", "Ring", "Pinky"] as const;

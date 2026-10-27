@@ -46,9 +46,10 @@ export default function PrivacyPage() {
             <li>the inspiration photos and description you add, including any artist credits you write</li>
           </ul>
           <p>
-            If you email me, I also have your email and whatever you write. When you buy something, payment and delivery details are needed to
-            complete the order.
+            When you pay for a shop set or a custom order, I receive your name, email, phone number if given, delivery address and what you
+            bought. Card and other payment details go straight to Stripe — I never see or store them.
           </p>
+          <p>If you email me, I also have your email and whatever you write.</p>
         </Section>
 
         <Section title="Why I use it">
@@ -63,7 +64,8 @@ export default function PrivacyPage() {
         <Section title="Where it is stored">
           <p>I use a few trusted services to run the shop. They only process your data on my behalf:</p>
           <ul>
-            <li>Sanity — stores order requests and photos (EU data centre)</li>
+            <li>Stripe — handles payments</li>
+            <li>Sanity — stores order requests, orders and photos (EU data centre)</li>
             <li>Vercel — hosts the website (servers in Frankfurt, Germany)</li>
             <li>Resend — sends order emails (EU region, Ireland)</li>
             <li>Google (Gmail) and Cloudflare — receive and forward emails sent to {site.email}</li>

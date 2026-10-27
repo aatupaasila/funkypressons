@@ -3,7 +3,9 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { formatPrice } from "@/content/catalog";
-import { getProduct, getProducts } from "@/sanity/queries";
+import { paymentsEnabled } from "@/lib/stripe";
+import { getProduct, getProducts, getSettings } from "@/sanity/queries";
+import { BuyBox } from "./buy-box";
 import { NailPhoto } from "@/components/nail-photo";
 import { button, tag } from "@/components/ui";
 
@@ -39,7 +41,7 @@ function ProductSkeleton() {
 }
 
 async function ProductDetails({ params }: Pick<PageProps<"/shop/[slug]">, "params">) {
-  const product = await getProduct((await params).slug);
+  const [product, { shippingCountries }] = await Promise.all([getProduct((await params).slug), getSettings()]);
   if (!product) notFound();
 
   return (
@@ -74,14 +76,26 @@ async function ProductDetails({ params }: Pick<PageProps<"/shop/[slug]">, "param
           </div>
           <div className="col-span-2">
             <dt className="text-cocoa">Fit</dt>
-            <dd>Made to your measurements after you order.</dd>
+            <dd>
+              {product.fulfilment === "ready-made"
+                ? `Finished set${product.readySize ? ` in size ${product.readySize}` : ""}, ready to ship.`
+                : "Made to your measurements after you order."}
+            </dd>
           </div>
         </dl>
 
-        {/* Checkout arrives with Stripe; until then the button is honest about it */}
-        <button type="button" disabled className={button.primary}>
-          {product.inStock ? "Checkout opening soon" : "Sold out"}
-        </button>
+        {!product.inStock ? (
+          <button type="button" disabled className={button.primary}>
+            Sold out
+          </button>
+        ) : paymentsEnabled && product.price ? (
+          <BuyBox slug={product.slug} price={product.price} fulfilment={product.fulfilment} readySize={product.readySize} countries={shippingCountries} />
+        ) : (
+          // No Stripe key on this deployment (or no price yet): be honest about it
+          <button type="button" disabled className={button.primary}>
+            Checkout opening soon
+          </button>
+        )}
         <p className="text-sm text-cocoa">
           Want it in another shape or colour?{" "}
           <Link href="/custom" className="font-semibold text-heart underline underline-offset-4">

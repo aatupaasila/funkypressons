@@ -1,7 +1,8 @@
 import "server-only";
 import { defineQuery } from "next-sanity";
 import type { NailLength, NailSet, NailShape, Product } from "@/content/catalog";
-import { defaultBaseColours, defaultShapes, defaultShippingCountries, type ShapeOption } from "@/content/order-options";
+import { countryName, isCountryCode } from "@/content/countries";
+import { defaultBaseColours, defaultShapes, defaultShippingZones, type ShapeOption, type ShippingZone } from "@/content/order-options";
 import { sanityFetch } from "./client";
 import { imageUrl, squareImageUrl } from "./image";
 
@@ -17,6 +18,8 @@ type DesignRow = {
   price: number | null;
   inStock: boolean | null;
   isNew: boolean | null;
+  fulfilment: Product["fulfilment"] | null;
+  readySize: string | null;
 };
 
 const designFields = `
@@ -30,7 +33,9 @@ const designFields = `
   inspiredBy,
   price,
   inStock,
-  isNew
+  isNew,
+  fulfilment,
+  readySize
 `;
 
 const galleryQuery = defineQuery(
@@ -41,7 +46,7 @@ const productsQuery = defineQuery(
 );
 const productQuery = defineQuery(`*[_type == "design" && forSale == true && slug.current == $slug][0] { ${designFields} }`);
 const settingsQuery = defineQuery(
-  `*[_id == "siteSettings"][0] { announcement, shippingCountries, baseColours[] { name, hex }, shapes[] { shape, name, note, available },
+  `*[_id == "siteSettings"][0] { announcement, shippingZones[] { name, countries, price, delivery }, baseColours[] { name, hex }, shapes[] { shape, name, note, available },
     hero { mode, "sets": sets[]->{ name, "image": images[0] }[defined(image.asset)], image } }`,
 );
 
@@ -49,7 +54,7 @@ type SanityImage = { asset?: { _ref: string } };
 
 type SettingsRow = {
   announcement: string;
-  shippingCountries: string[];
+  shippingZones: Partial<ShippingZone>[];
   baseColours: { name: string; hex: string }[];
   shapes: { shape: string | null; name: string | null; note: string | null; available: boolean | null }[];
   hero: {
@@ -73,7 +78,14 @@ function toNailSet(row: DesignRow): NailSet {
 }
 
 function toProduct(row: DesignRow): Product {
-  return { ...toNailSet(row), price: row.price, inStock: row.inStock !== false, isNew: row.isNew ?? false };
+  return {
+    ...toNailSet(row),
+    price: row.price,
+    inStock: row.inStock !== false,
+    isNew: row.isNew ?? false,
+    fulfilment: row.fulfilment ?? "made-to-order",
+    readySize: row.readySize ?? undefined,
+  };
 }
 
 export async function getGallery() {
@@ -89,9 +101,12 @@ export async function getProduct(slug: string) {
   return row ? toProduct(row) : null;
 }
 
+export type ShippingCountry = { code: string; name: string; price: number; delivery: string };
+
 export type SiteSettings = {
   announcement: string;
-  shippingCountries: string[];
+  /** Every country she ships to with its zone's price, sorted by name */
+  shippingCountries: ShippingCountry[];
   baseColours: { id: string; name: string; hex: string }[];
   /** Only the shapes currently available, in her order */
   shapes: ShapeOption[];
@@ -100,9 +115,22 @@ export type SiteSettings = {
 };
 
 // Used until the settings document has been filled in
+function toShippingCountries(zones: Partial<ShippingZone>[]): ShippingCountry[] {
+  return zones
+    .flatMap((zone) =>
+      (zone.countries ?? []).filter(isCountryCode).map((code) => ({
+        code,
+        name: countryName(code),
+        price: zone.price ?? 0,
+        delivery: zone.delivery ?? "",
+      })),
+    )
+    .sort((a, b) => a.name.localeCompare(b.name));
+}
+
 const defaultSettings: SiteSettings = {
   announcement: "Shipping worldwide ✦ Custom sets open",
-  shippingCountries: defaultShippingCountries,
+  shippingCountries: toShippingCountries(defaultShippingZones),
   baseColours: defaultBaseColours,
   shapes: defaultShapes,
   hero: { mode: "slideshow", slides: [] },
@@ -128,7 +156,7 @@ export async function getSettings(): Promise<SiteSettings> {
   const row = await sanityFetch<Partial<SettingsRow> | null>(settingsQuery);
   return {
     announcement: row?.announcement || defaultSettings.announcement,
-    shippingCountries: row?.shippingCountries?.length ? row.shippingCountries : defaultSettings.shippingCountries,
+    shippingCountries: row?.shippingZones?.length ? toShippingCountries(row.shippingZones) : defaultSettings.shippingCountries,
     baseColours: row?.baseColours?.length
       ? row.baseColours.map((c) => ({ id: c.name.toLowerCase().replace(/\s+/g, "-"), name: c.name, hex: c.hex }))
       : defaultSettings.baseColours,

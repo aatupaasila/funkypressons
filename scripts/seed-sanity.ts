@@ -5,6 +5,7 @@
 
 import { readFile } from "node:fs/promises";
 import { createClient } from "@sanity/client";
+import { defaultShippingZones } from "../src/content/order-options.ts";
 
 const client = createClient({
   projectId: process.env.NEXT_PUBLIC_SANITY_PROJECT_ID,
@@ -45,7 +46,7 @@ const settings = {
   _id: "siteSettings",
   _type: "siteSettings",
   announcement: "Shipping worldwide ✦ Custom sets open",
-  shippingCountries: ["Finland", "United Kingdom", "United States", "Saudi Arabia", "Other (outside the EU)"],
+  shippingZones: defaultShippingZones.map((zone, i) => ({ _key: `zone${i}`, _type: "shippingZone", ...zone })),
   baseColours: [
     ["Clear", "#F4F1F2"],
     ["Milky white", "#F7F2EC"],

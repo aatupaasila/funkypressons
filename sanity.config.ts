@@ -2,6 +2,7 @@
 
 import { defineConfig } from "sanity";
 import { structureTool } from "sanity/structure";
+import { SendPaymentLinkAction } from "./src/sanity/actions/send-payment-link";
 import { dataset, projectId } from "./src/sanity/env";
 import { schemaTypes } from "./src/sanity/schema";
 import { structure } from "./src/sanity/structure";
@@ -19,9 +20,13 @@ export default defineConfig({
     templates: (templates) => templates.filter((t) => t.schemaType !== "siteSettings"),
   },
   document: {
-    // Requests come from the website, not the Studio
-    newDocumentOptions: (prev) => prev.filter((item) => item.templateId !== "customRequest" && item.templateId !== "siteSettings"),
-    actions: (prev, { schemaType }) =>
-      schemaType === "siteSettings" ? prev.filter((a) => !["unpublish", "delete", "duplicate"].includes(a.action ?? "")) : prev,
+    // Requests and orders come from the website, not the Studio
+    newDocumentOptions: (prev) => prev.filter((item) => !["customRequest", "shopOrder", "siteSettings"].includes(item.templateId)),
+    actions: (prev, { schemaType }) => {
+      if (schemaType === "siteSettings") return prev.filter((a) => !["unpublish", "delete", "duplicate"].includes(a.action ?? ""));
+      if (schemaType === "customRequest") return [SendPaymentLinkAction, ...prev];
+      if (schemaType === "shopOrder") return prev.filter((a) => a.action !== "duplicate");
+      return prev;
+    },
   },
 });

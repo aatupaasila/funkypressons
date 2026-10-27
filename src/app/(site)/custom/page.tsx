@@ -10,5 +10,7 @@ export const metadata: Metadata = {
 export default async function CustomPage() {
   const [gallery, { shippingCountries, baseColours, shapes }] = await Promise.all([getGallery(), getSettings()]);
   const designs = gallery.map(({ slug, name, image }) => ({ slug, name, image }));
-  return <CustomOrderForm designs={designs} options={{ shippingCountries, baseColours, shapes }} />;
+  // Only codes and names go to the browser; prices stay on the server
+  const countries = shippingCountries.map(({ code, name }) => ({ code, name }));
+  return <CustomOrderForm designs={designs} options={{ shippingCountries: countries, baseColours, shapes }} />;
 }

@@ -34,7 +34,7 @@ export function parseDraft(input: unknown): OrderDraft | null {
     presetSize: oneOf(d.presetSize, Object.keys(presetSizes) as PresetSize[]),
     sizes: { left: hand(sizes.left), right: hand(sizes.right) },
     deadline: text(d.deadline, 10),
-    country: text(d.country, 80),
+    country: text(d.country, 2),
     name: text(d.name, 120),
     email: text(d.email, 200),
     instagram: text(d.instagram, 60),

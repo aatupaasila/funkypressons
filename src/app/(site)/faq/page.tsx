@@ -20,7 +20,7 @@ const faqs = [
   },
   {
     q: "Where do you ship?",
-    a: "Finland, the UK, the US, Saudi Arabia and other countries outside the EU. Shipping to other EU countries is paused for now.",
+    a: "Finland, the rest of the EU and many countries around the world — you'll see your country and the shipping price before you pay. If a shipment ever turns out to be impossible, I'll contact you and refund your order in full.",
   },
   {
     q: "Will I pay customs fees?",

@@ -1,5 +1,6 @@
 import type { StructureResolver } from "sanity/structure";
 import { requestStatuses } from "./schema/custom-request";
+import { orderStatuses } from "./schema/shop-order";
 
 // The left-hand menu in the Studio
 export const structure: StructureResolver = (S) =>
@@ -26,6 +27,28 @@ export const structure: StructureResolver = (S) =>
               ),
               S.divider(),
               S.documentTypeListItem("customRequest").title("All requests"),
+            ]),
+        ),
+      S.listItem()
+        .title("Shop orders")
+        .child(
+          S.list()
+            .title("Shop orders")
+            .items([
+              ...orderStatuses.map((status) =>
+                S.listItem()
+                  .title(status.title)
+                  .child(
+                    S.documentList()
+                      .title(status.title)
+                      .schemaType("shopOrder")
+                      .filter('_type == "shopOrder" && status == $status')
+                      .params({ status: status.value })
+                      .defaultOrdering([{ field: "paidAt", direction: "desc" }]),
+                  ),
+              ),
+              S.divider(),
+              S.documentTypeListItem("shopOrder").title("All orders"),
             ]),
         ),
       S.divider(),

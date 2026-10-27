@@ -17,7 +17,7 @@ import { uploadInspirationPhoto } from "./upload-photo";
 type StepId = "type" | "inspiration" | "design" | "shape" | "length" | "colour" | "sizes" | "deadline" | "contact" | "review";
 type Design = { slug: string; name: string; image: string };
 /** Lists she edits in Site settings */
-export type FormOptions = { shippingCountries: string[]; baseColours: { id: string; name: string; hex: string }[]; shapes: ShapeOption[] };
+export type FormOptions = { shippingCountries: { code: string; name: string }[]; baseColours: { id: string; name: string; hex: string }[]; shapes: ShapeOption[] };
 type FormProps = { designs: Design[]; options: FormOptions };
 
 const DRAFT_KEY = "fpo-custom-draft-v1";
@@ -123,7 +123,7 @@ function OrderForm({ designs, options }: FormProps) {
     colour: draft.baseColour !== null,
     sizes: sizesComplete(draft),
     deadline: true,
-    contact: options.shippingCountries.includes(draft.country) && draft.name.trim() !== "" && isValidEmail(draft.email),
+    contact: options.shippingCountries.some((c) => c.code === draft.country) && draft.name.trim() !== "" && isValidEmail(draft.email),
     review: draft.agreed,
   };
 
@@ -581,11 +581,11 @@ function StepContent({ step, draft, update, images, setImages, designs, options,
                   Choose a country
                 </option>
                 {shippingCountries.map((c) => (
-                  <option key={c}>{c}</option>
+                  <option key={c.code} value={c.code}>
+                    {c.name}
+                  </option>
                 ))}
-              </select>
-              <span className="text-sm font-normal text-cocoa">Shipping to other EU countries is paused for now.</span>
-            </label>
+              </select>            </label>
             <label className="flex flex-col gap-2 font-semibold">
               Your name
               <input value={draft.name} onChange={(e) => update({ name: e.target.value })} autoComplete="name" className={`${inputClass} font-normal`} />
@@ -633,7 +633,7 @@ function StepContent({ step, draft, update, images, setImages, designs, options,
           step: "sizes",
         },
         ...(draft.deadline ? [{ label: "Needed by", value: draft.deadline, step: "deadline" as const }] : []),
-        { label: "Ship to", value: draft.country, step: "contact" },
+        { label: "Ship to", value: shippingCountries.find((c) => c.code === draft.country)?.name ?? "—", step: "contact" },
         { label: "Contact", value: `${draft.name} · ${draft.email}`, step: "contact" },
       ];
       return (

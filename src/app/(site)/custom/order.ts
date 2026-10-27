@@ -71,7 +71,7 @@ export function sizesComplete(draft: OrderDraft) {
 export function validateOrder(
   draft: OrderDraft,
   inspirationCount: number,
-  { shippingCountries, shapes }: { shippingCountries: string[]; shapes: { id: string }[] },
+  { shippingCountries, shapes }: { shippingCountries: { code: string }[]; shapes: { id: string }[] },
 ): string[] {
   const problems: string[] = [];
   if (!draft.setType) problems.push("Choose what kind of set you'd like.");
@@ -85,7 +85,8 @@ export function validateOrder(
   if (!draft.length) problems.push("Choose a length.");
   if (draft.setType !== "existing" && !draft.baseColour) problems.push("Choose a base colour.");
   if (!sizesComplete(draft)) problems.push("Choose a size, add your measurements or ask for a sizing kit.");
-  if (!shippingCountries.includes(draft.country)) problems.push("Choose where to ship.");
+  // draft.country is an ISO code; drafts saved before codes were used hold a name and fail here
+  if (!shippingCountries.some((c) => c.code === draft.country)) problems.push("Choose where to ship.");
   if (!draft.name.trim()) problems.push("Add your name.");
   if (!isValidEmail(draft.email)) problems.push("Add a valid email address.");
   if (!draft.agreed) problems.push("Please accept the order terms.");

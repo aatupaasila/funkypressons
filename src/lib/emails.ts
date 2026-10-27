@@ -91,3 +91,92 @@ export async function sendRequestEmails(request: RequestEmail) {
     else if (result.value.error) console.error("Email failed", request.reference, result.value.error);
   }
 }
+
+const button = (href: string, label: string) =>
+  `<p><a href="${href}" style="display:inline-block;background:#d62a66;color:#fff;text-decoration:none;font-weight:600;padding:12px 24px;border-radius:999px">${escape(label)}</a></p>`;
+
+const footer = `<p style="color:#7a5c5c;font-size:14px">${escape(site.instagramHandle)} · ${escape(site.url.replace("https://", ""))}</p>`;
+
+const studioLink = (id: string, type: string) => `${site.url}/studio/intent/edit/id=${id};type=${type}`;
+
+type Message = Parameters<Resend["emails"]["send"]>[0];
+
+/** Sends each message, logging failures instead of throwing — the order is already saved */
+async function sendAll(label: string, messages: Message[]) {
+  const client = getResend();
+  if (!client) {
+    console.warn("RESEND_API_KEY not set — skipping emails for", label);
+    return;
+  }
+  const results = await Promise.allSettled(messages.map((m) => client.emails.send(m)));
+  for (const result of results) {
+    if (result.status === "rejected") console.error("Email failed", label, result.reason);
+    else if (result.value.error) console.error("Email failed", label, result.value.error);
+  }
+}
+
+/** The quote for a custom request, with the link to pay it */
+export async function sendPaymentLinkEmail(p: { reference: string; name: string; email: string; amount: number; linkUrl: string }) {
+  const firstName = p.name.split(" ")[0];
+  await sendAll(p.reference, [
+    {
+      from: FROM,
+      to: p.email,
+      replyTo: site.email,
+      subject: `Your custom nail quote ✦ ${p.reference}`,
+      html: layout(
+        `Your quote, ${escape(firstName)}`,
+        `<p style="margin:0 0 12px;line-height:1.6">Thank you for waiting! Your custom set comes to <strong>${p.amount} €</strong>, shipping included. I'll start making it as soon as it's paid.</p>
+        ${button(p.linkUrl, `Pay ${p.amount} €`)}
+        <p style="line-height:1.6">Questions, or want to change something first? Just reply to this email.</p>
+        ${footer}`,
+      ),
+    },
+  ]);
+}
+
+/** A custom request was paid: tell her, and thank the customer */
+export async function sendCustomPaidEmails(p: { reference: string; documentId: string; name: string; email: string; amount: number }) {
+  await sendAll(p.reference, [
+    {
+      from: FROM,
+      to: site.email,
+      replyTo: p.email,
+      subject: `💳 Paid: custom request ${p.reference} (${p.amount} €)`,
+      html: layout(`${escape(p.name)} <em>paid!</em>`, `<p>${p.amount} € received for ${escape(p.reference)}. Time to start painting.</p>${button(studioLink(p.documentId, "customRequest"), "Open in Studio")}`),
+    },
+    {
+      from: FROM,
+      to: p.email,
+      replyTo: site.email,
+      subject: `Payment received ✦ ${p.reference}`,
+      html: layout(
+        `Thank you, ${escape(p.name.split(" ")[0])}!`,
+        `<p style="line-height:1.6">Your payment of ${p.amount} € is in and I'm starting on your set. I'll email you when it ships.</p>${footer}`,
+      ),
+    },
+  ]);
+}
+
+/** A shop purchase was paid: tell her, and confirm to the customer */
+export async function sendShopOrderEmails(p: { reference: string; documentId: string; name: string; email: string; rows: [string, string][] }) {
+  await sendAll(p.reference, [
+    {
+      from: FROM,
+      to: site.email,
+      replyTo: p.email,
+      subject: `🛍 New shop order ${p.reference} from ${p.name}`,
+      html: layout(`New order from <em>${escape(p.name)}</em>`, `${summaryTable([["Reference", p.reference], ["Email", p.email], ...p.rows])}${button(studioLink(p.documentId, "shopOrder"), "Open in Studio")}`),
+    },
+    {
+      from: FROM,
+      to: p.email,
+      replyTo: site.email,
+      subject: `Order confirmed ✦ ${p.reference}`,
+      html: layout(
+        `Thank you, ${escape(p.name.split(" ")[0])}!`,
+        `<p style="margin:0 0 12px;line-height:1.6">Your order is confirmed. I'll email you again when it ships.</p>${summaryTable([["Reference", p.reference], ...p.rows])}<p style="line-height:1.6">Questions? Just reply to this email.</p>${footer}`,
+      ),
+    },
+  ]);
+}

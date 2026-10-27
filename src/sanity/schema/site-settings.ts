@@ -1,4 +1,5 @@
 import { defineField, defineType } from "sanity";
+import { countries } from "../../content/countries";
 import { shapes } from "../../content/order-options";
 
 // Single document: things she may want to change without touching code
@@ -15,13 +16,44 @@ export const siteSettings = defineType({
       initialValue: "Shipping worldwide ✦ Custom sets open",
     }),
     defineField({
-      name: "shippingCountries",
-      title: "Shipping countries",
-      description: "Countries customers can choose in the custom order form.",
+      name: "shippingZones",
+      title: "Shipping",
+      description:
+        "Where you ship and what it costs. Each zone is a group of countries with one price. Only these countries can be chosen in the shop and the custom order form.",
       type: "array",
-      of: [{ type: "string" }],
-      validation: (r) => r.min(1),
+      of: [
+        {
+          type: "object",
+          name: "shippingZone",
+          fields: [
+            defineField({ name: "name", title: "Zone name", description: "e.g. Finland, or Rest of the world", type: "string", validation: (r) => r.required() }),
+            defineField({
+              name: "countries",
+              title: "Countries",
+              type: "array",
+              of: [{ type: "string", options: { list: countries.map((c) => ({ title: c.name, value: c.code })) } }],
+              validation: (r) => r.required().min(1).unique(),
+            }),
+            defineField({ name: "price", title: "Shipping price (€)", description: "Use 0 for free shipping.", type: "number", validation: (r) => r.required().min(0) }),
+            defineField({ name: "delivery", title: "Delivery time", description: "Shown to customers, e.g. “2–5 working days”.", type: "string" }),
+          ],
+          preview: {
+            select: { title: "name", price: "price", countries: "countries" },
+            prepare: ({ title, price, countries: list }) => ({
+              title,
+              subtitle: `${price ?? "?"} € · ${(list ?? []).length} ${(list ?? []).length === 1 ? "country" : "countries"}`,
+            }),
+          },
+        },
+      ],
+      validation: (r) =>
+        r.min(1).custom((zones: { countries?: string[] }[] | undefined) => {
+          const all = (zones ?? []).flatMap((z) => z.countries ?? []);
+          return new Set(all).size === all.length || "A country can only be in one zone.";
+        }),
     }),
+    // Replaced by shippingZones; kept hidden so older data doesn't show as an unknown field
+    defineField({ name: "shippingCountries", type: "array", of: [{ type: "string" }], hidden: true }),
     defineField({
       name: "baseColours",
       title: "Base colours",
