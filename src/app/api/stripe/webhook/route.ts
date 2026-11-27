@@ -12,7 +12,8 @@ export async function POST(request: Request) {
 
   let event: Stripe.Event;
   try {
-    event = stripe.webhooks.constructEvent(await request.text(), request.headers.get("stripe-signature") ?? "", secret);
+    // Async version: Workers only have the Web Crypto API
+    event = await stripe.webhooks.constructEventAsync(await request.text(), request.headers.get("stripe-signature") ?? "", secret);
   } catch {
     return Response.json({ error: "Invalid signature" }, { status: 400 });
   }

@@ -1,9 +1,12 @@
+import { initOpenNextCloudflareForDev } from "@opennextjs/cloudflare";
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   cacheComponents: true,
   images: {
-    remotePatterns: [{ protocol: "https", hostname: "cdn.sanity.io" }],
+    // Sanity's CDN does the resizing (see the loader), not the host
+    loader: "custom",
+    loaderFile: "./src/lib/image-loader.ts",
   },
   poweredByHeader: false,
   async headers() {
@@ -33,3 +36,6 @@ const nextConfig: NextConfig = {
 };
 
 export default nextConfig;
+
+// Gives `next dev` the Cloudflare bindings (R2, D1…) from wrangler.jsonc
+initOpenNextCloudflareForDev();
