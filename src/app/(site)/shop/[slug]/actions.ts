@@ -29,10 +29,10 @@ const hand = (value: unknown): Hand => {
   return [0, 1, 2, 3, 4].map((i) => (typeof list[i] === "string" ? list[i].slice(0, 6) : "")) as Hand;
 };
 
-/** Where Stripe sends the buyer back to: this site, or localhost while developing */
+/** Where Stripe sends the buyer back to: this site, localhost while developing, or the Cloudflare test address */
 async function returnOrigin() {
   const origin = (await headers()).get("origin") ?? "";
-  return /^http:\/\/localhost:\d+$/.test(origin) ? origin : site.url;
+  return /^http:\/\/localhost:\d+$/.test(origin) || origin === site.testUrl ? origin : site.url;
 }
 
 // Public endpoint: the price, stock and shipping all come from Sanity here,

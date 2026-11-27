@@ -3,7 +3,10 @@ import Stripe from "stripe";
 
 // Payments are switched on by setting STRIPE_SECRET_KEY. Without it (e.g. on
 // hosting that doesn't allow selling yet) the shop shows "opening soon".
-export const stripe = process.env.STRIPE_SECRET_KEY ? new Stripe(process.env.STRIPE_SECRET_KEY) : null;
+// fetch rather than Node's http: Workers can't reuse a connection across requests
+export const stripe = process.env.STRIPE_SECRET_KEY
+  ? new Stripe(process.env.STRIPE_SECRET_KEY, { httpClient: Stripe.createFetchHttpClient() })
+  : null;
 
 export const paymentsEnabled = stripe !== null;
 
