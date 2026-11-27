@@ -20,7 +20,9 @@ export async function generateMetadata({ params }: PageProps<"/shop/[slug]">): P
 
 // Products added in the Studio after a deploy aren't known at build time, so
 // the details stream in behind a fallback instead of blocking the page.
-export default function ProductPage({ params }: PageProps<"/shop/[slug]">) {
+export default async function ProductPage({ params }: PageProps<"/shop/[slug]">) {
+  // Check before streaming starts, so unknown slugs get a real 404 status (the read is cached)
+  if (!(await getProduct((await params).slug))) notFound();
   return (
     <Suspense fallback={<ProductSkeleton />}>
       <ProductDetails params={params} />
